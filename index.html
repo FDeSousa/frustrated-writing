@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frustrated Writing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Notes</h2>
+            </div>
+            <div id="notes-list" class="notes-list"></div>
+        </div>
+        <div class="content-wrapper">
+            <div class="controls">
+                <div class="controls-inner">
+                    <button id="menu-btn" class="mobile-only"><i class="fas fa-bars"></i></button>
+                    <div class="main-controls">
+                        <button id="new-note-btn"><i class="fas fa-edit"></i></button>
+                        <button id="pin-note"><i class="fas fa-thumbtack"></i></button>
+                        <button id="let-go"><i class="fas fa-fire"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="main-content">
+                <div class="paper">
+                    <textarea id="note-editor" placeholder="Let it all out..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
