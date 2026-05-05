@@ -64,22 +64,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function newNote() {
         if (noteEditor.value && !currentNoteId) {
-            // Unpinned note with content, destroy without saving
-            const paper = document.querySelector('.paper');
-            if (paper.classList.contains('crumple') || paper.classList.contains('shred') || paper.classList.contains('burn')) {
-                return;
-            }
-            const animations = ['crumple', 'shred', 'burn'];
-            const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
-            paper.classList.add(randomAnimation);
-            setTimeout(() => {
+            // Unpinned note with content — animate it away without saving
+            triggerDestructionAnimation(() => {
                 noteEditor.value = '';
                 currentNoteId = null;
                 updatePinStatus();
-                paper.classList.remove(randomAnimation);
-            }, 1000);
+            });
         } else {
-            // Pinned note or empty editor, just clear
+            // Saved note or empty editor — just clear
             noteEditor.value = '';
             currentNoteId = null;
             updatePinStatus();
@@ -122,20 +114,128 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function triggerLetGo() {
-        const paper = document.querySelector('.paper');
-        if (paper.classList.contains('crumple') || paper.classList.contains('shred') || paper.classList.contains('burn')) {
-            return;
-        }
-
-        const animations = ['crumple', 'shred', 'burn'];
-        const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
-
-        paper.classList.add(randomAnimation);
-
-        setTimeout(() => {
+        if (!noteEditor.value.trim() && !currentNoteId) return;
+        triggerDestructionAnimation(() => {
             deleteCurrentNote();
-            paper.classList.remove(randomAnimation);
-        }, 1000);
+        });
+    }
+
+    // --- Destruction animation engine ---
+
+    const DESTRUCTION_ANIMATIONS = ['crumple', 'shred', 'burn', 'laser', 'stamp'];
+    const ANIMATION_DURATIONS = { crumple: 1400, shred: 1400, burn: 1500, laser: 1500, stamp: 1500 };
+
+    function triggerDestructionAnimation(callback) {
+        const paper = document.querySelector('.paper');
+        if (paper.dataset.animating) return false;
+        paper.dataset.animating = 'true';
+
+        const type = DESTRUCTION_ANIMATIONS[Math.floor(Math.random() * DESTRUCTION_ANIMATIONS.length)];
+
+        const done = () => {
+            delete paper.dataset.animating;
+            paper.querySelectorAll('.anim-overlay').forEach(el => el.remove());
+            paper.style.position = '';
+            paper.style.overflow = '';
+            callback();
+        };
+
+        switch (type) {
+            case 'crumple': animateCrumple(paper, done); break;
+            case 'shred':   animateShred(paper, done);   break;
+            case 'burn':    animateBurn(paper, done);    break;
+            case 'laser':   animateLaser(paper, done);   break;
+            case 'stamp':   animateStamp(paper, done);   break;
+        }
+        return true;
+    }
+
+    function animateCrumple(paper, done) {
+        paper.classList.add('anim-crumple');
+        setTimeout(() => { paper.classList.remove('anim-crumple'); done(); }, ANIMATION_DURATIONS.crumple);
+    }
+
+    function animateShred(paper, done) {
+        const rect = paper.getBoundingClientRect();
+        const paperBg = getComputedStyle(paper).backgroundColor || 'white';
+        const COUNT = 10;
+        const container = document.createElement('div');
+        container.className = 'anim-overlay';
+        Object.assign(container.style, {
+            position: 'fixed',
+            top:  rect.top  + 'px',
+            left: rect.left + 'px',
+            width:  rect.width  + 'px',
+            height: rect.height + 'px',
+            zIndex: '9999',
+            pointerEvents: 'none',
+            overflow: 'hidden',
+        });
+        const stripWidth = rect.width / COUNT;
+        for (let i = 0; i < COUNT; i++) {
+            const strip = document.createElement('div');
+            const delay = i * 35 + Math.random() * 70;
+            const rot   = (Math.random() - 0.5) * 28;
+            strip.style.cssText = [
+                'position:absolute', 'top:0',
+                `left:${i * stripWidth}px`,
+                `width:${stripWidth + 1}px`,
+                'height:100%',
+                `background:${paperBg}`,
+                'box-shadow:inset 0 0 3px rgba(0,0,0,0.12)',
+                `animation:shred-strip-fall 0.9s ease-in ${delay}ms both`,
+                `--rot:${rot}deg`,
+            ].join(';');
+            container.appendChild(strip);
+        }
+        document.body.appendChild(container);
+        setTimeout(() => { container.remove(); done(); }, ANIMATION_DURATIONS.shred);
+    }
+
+    function animateBurn(paper, done) {
+        paper.style.position = 'relative';
+        paper.style.overflow = 'hidden';
+        const fire = document.createElement('div');
+        fire.className = 'anim-overlay burn-fire';
+        paper.appendChild(fire);
+        paper.classList.add('anim-charring');
+        setTimeout(() => { paper.classList.remove('anim-charring'); done(); }, ANIMATION_DURATIONS.burn);
+    }
+
+    function animateLaser(paper, done) {
+        paper.style.position = 'relative';
+        paper.style.overflow = 'hidden';
+        const beam = document.createElement('div');
+        beam.className = 'anim-overlay laser-beam';
+        paper.appendChild(beam);
+        setTimeout(() => paper.classList.add('anim-laser-destroy'), 950);
+        setTimeout(() => { paper.classList.remove('anim-laser-destroy'); done(); }, ANIMATION_DURATIONS.laser);
+    }
+
+    function animateStamp(paper, done) {
+        const rect = paper.getBoundingClientRect();
+        const overlay = document.createElement('div');
+        overlay.className = 'anim-overlay';
+        overlay.innerHTML = '<div class="stamp-mark">VOID</div>';
+        Object.assign(overlay.style, {
+            position: 'fixed',
+            top:  rect.top  + 'px',
+            left: rect.left + 'px',
+            width:  rect.width  + 'px',
+            height: rect.height + 'px',
+            zIndex: '9999',
+            pointerEvents: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+        });
+        document.body.appendChild(overlay);
+        paper.classList.add('anim-paper-stamped');
+        setTimeout(() => {
+            paper.classList.remove('anim-paper-stamped');
+            overlay.remove();
+            done();
+        }, ANIMATION_DURATIONS.stamp);
     }
 
     function updatePinStatus() {
