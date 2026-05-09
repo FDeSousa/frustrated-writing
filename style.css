@@ -139,22 +139,23 @@ button:hover {
 /* --- Crumple & throw --- */
 @keyframes anim-crumple {
     0%   { transform: none; opacity: 1; filter: none; }
-    20%  { transform: scale(0.88) rotate(-5deg) skewX(-4deg); filter: brightness(0.9); }
-    42%  { transform: scale(0.65) rotate(12deg) skewX(6deg) skewY(-3deg); filter: brightness(0.75) contrast(1.2); }
-    65%  { transform: scale(0.35) rotate(-22deg) translate(55px, -35px); filter: brightness(0.52) contrast(1.5); }
-    85%  { transform: scale(0.14) rotate(420deg) translate(200px, -290px); filter: brightness(0.4); opacity: 0.5; }
-    100% { transform: scale(0.04) rotate(740deg) translate(380px, -500px); opacity: 0; }
+    12%  { transform: scale(0.94) rotate(-10deg) skewX(-10deg) skewY(5deg); filter: brightness(0.85); }
+    28%  { transform: scale(0.75) rotate(22deg) skewX(14deg) skewY(-9deg); filter: brightness(0.68) contrast(1.35); }
+    48%  { transform: scale(0.44) rotate(-35deg) translate(50px, -25px) skewX(-8deg); filter: brightness(0.48) contrast(1.65); }
+    66%  { transform: scale(0.2) rotate(360deg) translate(170px, -250px); filter: brightness(0.32); opacity: 0.7; }
+    82%  { transform: scale(0.07) rotate(580deg) translate(340px, -470px); opacity: 0.35; }
+    100% { transform: scale(0.02) rotate(820deg) translate(500px, -680px); opacity: 0; }
 }
 .anim-crumple {
-    animation: anim-crumple 1.4s cubic-bezier(0.3, 0, 0.7, 0.5) forwards;
+    animation: anim-crumple 2.2s cubic-bezier(0.25, 0, 0.6, 0.4) forwards;
     transform-origin: center center;
 }
 
 /* --- Shred strips (DOM elements injected by JS) --- */
 @keyframes shred-strip-fall {
     0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
-    10%  { transform: translateY(2%) rotate(calc(var(--rot) * 0.1)); opacity: 1; }
-    100% { transform: translateY(130vh) rotate(var(--rot)); opacity: 0.15; }
+    6%   { transform: translateY(1%) rotate(calc(var(--rot) * 0.04)); opacity: 1; }
+    100% { transform: translateY(145vh) rotate(var(--rot)); opacity: 0; }
 }
 
 /* --- Burn --- */
@@ -163,39 +164,61 @@ button:hover {
     inset: 0;
     background: linear-gradient(
         to top,
-        #881100 0%, #cc3300 7%, #ff5500 16%,
-        #ff8800 30%, #ffbb00 46%,
-        rgba(255, 200, 50, 0.55) 60%,
-        transparent 74%
+        #660d00 0%, #aa2200 8%, #dd4400 18%,
+        #ff6600 34%, #ff9900 50%,
+        rgba(255, 210, 60, 0.7) 65%,
+        transparent 80%
     );
-    animation: fire-rise 1.5s ease-in forwards;
+    animation: fire-rise 2.8s ease-in forwards;
     pointer-events: none;
     z-index: 10;
 }
+/* Second flickering layer to sell the flame effect */
+.burn-flicker {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to top,
+        #991500 0%, #cc3300 12%, #ee6600 26%,
+        #ffaa00 48%,
+        rgba(255, 230, 80, 0.5) 62%,
+        transparent 75%
+    );
+    animation: fire-rise 2.8s ease-in forwards,
+               fire-flicker 0.16s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 11;
+}
+@keyframes fire-flicker {
+    from { opacity: 0.65; transform: scaleX(0.96) skewX(-1.5deg); }
+    to   { opacity: 1;    transform: scaleX(1.04) skewX(1.5deg); }
+}
 @keyframes fire-rise {
-    0%   { transform: translateY(100%); opacity: 0.92; }
-    15%  { transform: translateY(42%); opacity: 1; }
-    65%  { transform: translateY(-8%); opacity: 1; }
-    100% { transform: translateY(-120%); opacity: 0.4; }
+    0%   { transform: translateY(100%); opacity: 0; }
+    5%   { transform: translateY(82%); opacity: 0.95; }
+    22%  { transform: translateY(40%); opacity: 1; }
+    62%  { transform: translateY(-6%); opacity: 1; }
+    100% { transform: translateY(-135%); opacity: 0.25; }
 }
 @keyframes anim-charring {
     0%   { filter: none; opacity: 1; }
-    25%  { filter: sepia(0.3) brightness(0.95); opacity: 1; }
-    62%  { filter: sepia(0.9) brightness(0.55) saturate(1.4); opacity: 0.9; }
-    100% { filter: sepia(1) brightness(0.08); opacity: 0; }
+    12%  { filter: sepia(0.4) brightness(0.9) saturate(1.6); opacity: 1; }
+    42%  { filter: sepia(0.85) brightness(0.5) saturate(2.2); opacity: 0.95; }
+    78%  { filter: sepia(1) brightness(0.12) contrast(1.6); opacity: 0.65; }
+    100% { filter: sepia(1) brightness(0.04) contrast(2); opacity: 0; }
 }
 .anim-charring {
-    animation: anim-charring 1.5s forwards;
+    animation: anim-charring 2.8s forwards;
 }
 
 /* --- Laser cutter --- */
 .laser-beam {
     position: absolute;
     left: -5%; right: -5%;
-    top: 0; height: 4px;
-    background: linear-gradient(to right, transparent 0%, #ff2200 15%, white 50%, #ff2200 85%, transparent 100%);
-    box-shadow: 0 0 8px 4px #ff4444, 0 0 20px 12px rgba(255, 50, 0, 0.4);
-    animation: laser-scan 0.95s linear forwards;
+    top: 0; height: 8px;
+    background: linear-gradient(to right, transparent 0%, #ff2200 12%, white 50%, #ff2200 88%, transparent 100%);
+    box-shadow: 0 0 12px 6px #ff4444, 0 0 30px 18px rgba(255, 50, 0, 0.55), 0 0 60px 40px rgba(255, 50, 0, 0.25);
+    animation: laser-scan 1.5s linear forwards;
     pointer-events: none;
     z-index: 10;
 }
@@ -205,49 +228,52 @@ button:hover {
 }
 @keyframes anim-laser-destroy {
     0%   { opacity: 1; filter: none; }
-    25%  { filter: brightness(4) saturate(0); opacity: 1; }
-    55%  { filter: brightness(2) sepia(1); opacity: 0.7; }
+    18%  { filter: brightness(7) saturate(0); opacity: 1; }
+    48%  { filter: brightness(3) sepia(1); opacity: 0.8; }
     100% { filter: brightness(0); opacity: 0; }
 }
 .anim-laser-destroy {
-    animation: anim-laser-destroy 0.55s forwards;
+    animation: anim-laser-destroy 0.7s forwards;
 }
 
 /* --- Rubber stamp --- */
 @keyframes stamp-slam {
-    0%   { transform: scale(3.5) rotate(-18deg); opacity: 0; }
-    55%  { transform: scale(0.93) rotate(-18deg); opacity: 1; }
-    70%  { transform: scale(1.06) rotate(-18deg); }
-    84%  { transform: scale(0.97) rotate(-18deg); }
+    0%   { transform: scale(4.5) rotate(-18deg); opacity: 0; }
+    50%  { transform: scale(0.90) rotate(-18deg); opacity: 1; }
+    66%  { transform: scale(1.08) rotate(-18deg); }
+    80%  { transform: scale(0.96) rotate(-18deg); }
     100% { transform: scale(1) rotate(-18deg); opacity: 1; }
 }
 @keyframes stamp-fade {
     0%   { opacity: 1; }
-    45%  { opacity: 1; }
+    40%  { opacity: 1; }
     100% { opacity: 0; }
 }
 .stamp-mark {
-    font-size: min(10vw, 6em);
+    font-size: min(22vw, 11em);
     font-weight: 900;
     font-family: 'Arial Black', 'Impact', sans-serif;
-    color: rgba(185, 0, 0, 0.88);
-    border: 10px solid rgba(185, 0, 0, 0.88);
-    padding: 12px 30px;
-    border-radius: 6px;
-    letter-spacing: 0.12em;
+    color: rgba(185, 0, 0, 0.9);
+    border: 18px solid rgba(185, 0, 0, 0.9);
+    padding: 18px 48px;
+    border-radius: 8px;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     mix-blend-mode: multiply;
-    animation: stamp-slam 0.65s cubic-bezier(0.15, 0.7, 0.35, 1.15) forwards,
-               stamp-fade 1.5s forwards;
+    animation: stamp-slam 0.8s cubic-bezier(0.12, 0.7, 0.3, 1.2) forwards,
+               stamp-fade 2.5s forwards;
 }
 @keyframes anim-paper-stamped {
-    0%   { opacity: 1; }
-    42%  { opacity: 1; transform: none; }
-    58%  { transform: scale(1.005); }
+    0%   { opacity: 1; transform: none; }
+    30%  { transform: none; }
+    36%  { transform: scale(1.012) translateY(-3px); }
+    42%  { transform: scale(0.998) translateY(0); }
+    48%  { transform: scale(1.004) translateY(-1px); }
+    55%  { transform: none; opacity: 1; }
     100% { opacity: 0; }
 }
 .anim-paper-stamped {
-    animation: anim-paper-stamped 1.5s forwards;
+    animation: anim-paper-stamped 2.5s forwards;
 }
 
 .mobile-only {

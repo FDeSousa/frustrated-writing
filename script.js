@@ -123,7 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Destruction animation engine ---
 
     const DESTRUCTION_ANIMATIONS = ['crumple', 'shred', 'burn', 'laser', 'stamp'];
-    const ANIMATION_DURATIONS = { crumple: 1400, shred: 1400, burn: 1500, laser: 1500, stamp: 1500 };
+    // Animation durations in milliseconds. CSS keyframe durations must match these values.
+    const ANIMATION_DURATIONS = { crumple: 2200, shred: 2200, burn: 2800, laser: 2200, stamp: 2500 };
+    // How long the laser beam scans before the paper starts disintegrating
+    const LASER_SCAN_DURATION = 1500;
 
     function triggerDestructionAnimation(callback) {
         const paper = document.querySelector('.paper');
@@ -137,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
             paper.querySelectorAll('.anim-overlay').forEach(el => el.remove());
             paper.style.position = '';
             paper.style.overflow = '';
+            paper.style.visibility = '';
             callback();
         };
 
@@ -158,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function animateShred(paper, done) {
         const rect = paper.getBoundingClientRect();
         const paperBg = getComputedStyle(paper).backgroundColor || 'white';
-        const COUNT = 10;
+        const COUNT = 16;
         const container = document.createElement('div');
         container.className = 'anim-overlay';
         Object.assign(container.style, {
@@ -174,20 +178,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const stripWidth = rect.width / COUNT;
         for (let i = 0; i < COUNT; i++) {
             const strip = document.createElement('div');
-            const delay = i * 35 + Math.random() * 70;
-            const rot   = (Math.random() - 0.5) * 28;
+            const delay = i * 50 + Math.random() * 100;
+            const rot   = (Math.random() - 0.5) * 90; // range: -45° to +45°
             strip.style.cssText = [
                 'position:absolute', 'top:0',
                 `left:${i * stripWidth}px`,
                 `width:${stripWidth + 1}px`,
                 'height:100%',
                 `background:${paperBg}`,
-                'box-shadow:inset 0 0 3px rgba(0,0,0,0.12)',
-                `animation:shred-strip-fall 0.9s ease-in ${delay}ms both`,
+                'box-shadow:inset 0 0 4px rgba(0,0,0,0.15)',
+                `animation:shred-strip-fall 1.5s ease-in ${delay}ms both`,
                 `--rot:${rot}deg`,
             ].join(';');
             container.appendChild(strip);
         }
+        // Hide the real paper so strips are the only thing visible
+        paper.style.visibility = 'hidden';
         document.body.appendChild(container);
         setTimeout(() => { container.remove(); done(); }, ANIMATION_DURATIONS.shred);
     }
@@ -197,7 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
         paper.style.overflow = 'hidden';
         const fire = document.createElement('div');
         fire.className = 'anim-overlay burn-fire';
+        const flicker = document.createElement('div');
+        flicker.className = 'anim-overlay burn-flicker';
         paper.appendChild(fire);
+        paper.appendChild(flicker);
         paper.classList.add('anim-charring');
         setTimeout(() => { paper.classList.remove('anim-charring'); done(); }, ANIMATION_DURATIONS.burn);
     }
@@ -208,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const beam = document.createElement('div');
         beam.className = 'anim-overlay laser-beam';
         paper.appendChild(beam);
-        setTimeout(() => paper.classList.add('anim-laser-destroy'), 950);
+        setTimeout(() => paper.classList.add('anim-laser-destroy'), LASER_SCAN_DURATION);
         setTimeout(() => { paper.classList.remove('anim-laser-destroy'); done(); }, ANIMATION_DURATIONS.laser);
     }
 
