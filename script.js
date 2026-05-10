@@ -347,28 +347,28 @@ document.addEventListener('DOMContentLoaded', () => {
                            + _vnoise(vec2(v_uv.x*14.0, u_t*8.0))*0.04;
                 float front = burn + edge;
 
-                const float CHAR = 0.045;  /* charred-ember band width  */
-                const float FIRE = 0.10;   /* fire-glow band above char */
+                const float CHAR_BAND_W = 0.045;  /* charred-ember band width  */
+                const float FIRE_BAND_W = 0.10;   /* fire-glow band above char */
 
-                if (v_uv.y < front - CHAR) {
+                if (v_uv.y < front - CHAR_BAND_W) {
                     discard;  /* burned away */
                 } else if (v_uv.y < front) {
                     /* Charred / glowing ember zone */
-                    float f   = (v_uv.y - (front - CHAR)) / CHAR;
+                    float f   = (v_uv.y - (front - CHAR_BAND_W)) / CHAR_BAND_W;
                     vec3  col = mix(vec3(0.04,0.01,0.0), vec3(0.95,0.3,0.0), f*f);
                     /* Scattered bright sparks */
                     float spk = _rand(v_uv*45.0 + vec2(u_t*13.0, u_t*7.7));
                     col += vec3(1.0,0.5,0.0) * step(0.93, spk) * (1.0 - f);
                     gl_FragColor = vec4(col, 1.0);
-                } else if (v_uv.y < front + FIRE) {
+                } else if (v_uv.y < front + FIRE_BAND_W) {
                     /* Fire band: deep orange at base → bright yellow at tip */
-                    float f    = (v_uv.y - front) / FIRE;
+                    float f    = (v_uv.y - front) / FIRE_BAND_W;
                     vec3  fire = mix(vec3(1.0,0.45,0.0), vec3(1.0,0.92,0.2), sqrt(f));
                     float flk  = 0.72 + 0.28*_vnoise(vec2(v_uv.x*5.0, u_t*22.0));
                     gl_FragColor = vec4(fire * flk, (1.0 - f) * 0.92);
                 } else {
                     /* Intact paper: subtle heat haze ahead of the fire */
-                    float heat = clamp(1.0 - (v_uv.y - front - FIRE)*7.0, 0.0, 1.0);
+                    float heat = clamp(1.0 - (v_uv.y - front - FIRE_BAND_W)*7.0, 0.0, 1.0);
                     heat *= heat;
                     vec3 paper = vec3(1.0 - heat*0.07, 1.0 - heat*0.11, 1.0 - heat*0.22);
                     gl_FragColor = vec4(paper, 1.0);
