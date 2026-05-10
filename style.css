@@ -1,14 +1,22 @@
+html {
+    height: 100%;
+}
+
 body {
     margin: 0;
     font-family: sans-serif;
     background-color: #f0f0f0;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
 }
 
+/* Use position:fixed so the layout is always pinned to the visual
+   viewport — this prevents iOS Safari from scrolling the controls
+   bar out of view when the address bar or keyboard shifts height. */
 .app-container {
     display: flex;
-    height: 100%;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
 }
 
 .sidebar {
@@ -113,6 +121,24 @@ body {
 
 .main-controls {
     display: flex;
+    align-items: center;
+}
+
+#effect-select {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: #333;
+    cursor: pointer;
+    margin-left: 15px;
+    padding: 4px 6px;
+    outline: none;
+}
+
+#effect-select:hover, #effect-select:focus {
+    border-color: #007bff;
+    color: #007bff;
 }
 
 button {
@@ -132,49 +158,159 @@ button:hover {
     color: #28a745; /* A green color to indicate saved */
 }
 
-@keyframes crumple {
-    0% {
-        transform: scale(1) rotate(0deg);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(0) rotate(720deg);
-        opacity: 0;
-    }
+/* =============================================
+   Destruction Animations
+   ============================================= */
+
+/* --- Crumple & throw --- */
+@keyframes anim-crumple {
+    0%   { transform: none; opacity: 1; filter: none; }
+    /* Paper gathers and folds — asymmetric compression, no rotation yet */
+    9%   { transform: scaleY(0.92) scaleX(1.03) skewX(-5deg);
+           filter: contrast(1.10); }
+    20%  { transform: scaleY(0.74) scaleX(0.89) skewX(-13deg) skewY(6deg);
+           filter: brightness(0.80) contrast(1.36); }
+    32%  { transform: scaleY(0.52) scaleX(0.71) skewX(11deg) skewY(-7deg) translateX(-18px);
+           filter: brightness(0.62) contrast(1.58); }
+    /* Paper balled up — rotation only starts now */
+    44%  { transform: scale(0.36) skewX(-9deg) skewY(12deg) rotate(7deg);
+           filter: brightness(0.48) contrast(1.74); }
+    56%  { transform: scale(0.22) rotate(18deg);
+           filter: brightness(0.36) contrast(1.82); }
+    /* Toss off screen — mild rotation, mostly translation */
+    70%  { transform: scale(0.12) rotate(30deg) translate(150px, -190px);
+           opacity: 0.72; filter: brightness(0.26); }
+    85%  { transform: scale(0.05) rotate(42deg) translate(310px, -400px); opacity: 0.28; }
+    100% { transform: scale(0.01) rotate(50deg) translate(420px, -550px); opacity: 0; }
+}
+.anim-crumple {
+    animation: anim-crumple 2.2s cubic-bezier(0.25, 0, 0.6, 0.4) forwards;
+    transform-origin: center center;
 }
 
-@keyframes shred {
-    0% {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(100%) scale(0.5);
-        opacity: 0;
-    }
+/* --- Shred strips (DOM elements injected by JS) --- */
+@keyframes shred-strip-fall {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    6%   { transform: translateY(1%) rotate(calc(var(--rot) * 0.04)); opacity: 1; }
+    100% { transform: translateY(145vh) rotate(var(--rot)); opacity: 0; }
 }
 
-@keyframes burn {
-    0% {
-        filter: blur(0);
-        opacity: 1;
-    }
-    100% {
-        filter: blur(20px);
-        opacity: 0;
-    }
+/* --- Burn --- */
+.burn-fire {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to top,
+        #660d00 0%, #aa2200 8%, #dd4400 18%,
+        #ff6600 34%, #ff9900 50%,
+        rgba(255, 210, 60, 0.7) 65%,
+        transparent 80%
+    );
+    animation: fire-rise 2.8s ease-in forwards;
+    pointer-events: none;
+    z-index: 10;
+}
+/* Second flickering layer to sell the flame effect */
+.burn-flicker {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to top,
+        #991500 0%, #cc3300 12%, #ee6600 26%,
+        #ffaa00 48%,
+        rgba(255, 230, 80, 0.5) 62%,
+        transparent 75%
+    );
+    animation: fire-rise 2.8s ease-in forwards,
+               fire-flicker 0.16s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 11;
+}
+@keyframes fire-flicker {
+    from { opacity: 0.65; transform: scaleX(0.96) skewX(-1.5deg); }
+    to   { opacity: 1;    transform: scaleX(1.04) skewX(1.5deg); }
+}
+@keyframes fire-rise {
+    0%   { transform: translateY(100%); opacity: 0; }
+    5%   { transform: translateY(82%); opacity: 0.95; }
+    22%  { transform: translateY(40%); opacity: 1; }
+    62%  { transform: translateY(-6%); opacity: 1; }
+    100% { transform: translateY(-135%); opacity: 0.25; }
+}
+@keyframes anim-charring {
+    0%   { filter: none; opacity: 1; }
+    12%  { filter: sepia(0.4) brightness(0.9) saturate(1.6); opacity: 1; }
+    42%  { filter: sepia(0.85) brightness(0.5) saturate(2.2); opacity: 0.95; }
+    78%  { filter: sepia(1) brightness(0.12) contrast(1.6); opacity: 0.65; }
+    100% { filter: sepia(1) brightness(0.04) contrast(2); opacity: 0; }
+}
+.anim-charring {
+    animation: anim-charring 2.8s forwards;
 }
 
-.crumple {
-    animation: crumple 1s forwards;
+/* --- Laser cutter --- */
+.laser-beam {
+    position: absolute;
+    left: -5%; right: -5%;
+    top: 0; height: 8px;
+    background: linear-gradient(to right, transparent 0%, #ff2200 12%, white 50%, #ff2200 88%, transparent 100%);
+    box-shadow: 0 0 12px 6px #ff4444, 0 0 30px 18px rgba(255, 50, 0, 0.55), 0 0 60px 40px rgba(255, 50, 0, 0.25);
+    animation: laser-scan 1.5s linear forwards;
+    pointer-events: none;
+    z-index: 10;
+}
+@keyframes laser-scan {
+    from { top: 0; }
+    to   { top: 100%; }
+}
+@keyframes anim-laser-destroy {
+    0%   { opacity: 1; filter: none; }
+    18%  { filter: brightness(7) saturate(0); opacity: 1; }
+    48%  { filter: brightness(3) sepia(1); opacity: 0.8; }
+    100% { filter: brightness(0); opacity: 0; }
+}
+.anim-laser-destroy {
+    animation: anim-laser-destroy 0.7s forwards;
 }
 
-.shred {
-    animation: shred 1s forwards;
+/* --- Rubber stamp --- */
+@keyframes stamp-slam {
+    0%   { transform: scale(4.5) rotate(var(--stamp-rot)); opacity: 0; }
+    50%  { transform: scale(0.90) rotate(var(--stamp-rot)); opacity: 1; }
+    66%  { transform: scale(1.08) rotate(var(--stamp-rot)); }
+    80%  { transform: scale(0.96) rotate(var(--stamp-rot)); }
+    100% { transform: scale(1) rotate(var(--stamp-rot)); opacity: 1; }
 }
-
-.burn {
-    animation: burn 1s forwards;
+@keyframes stamp-fade {
+    0%   { opacity: 1; }
+    40%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+.stamp-mark {
+    font-size: min(22vw, 11em);
+    font-weight: 900;
+    font-family: 'Arial Black', 'Impact', sans-serif;
+    color: rgba(185, 0, 0, 0.9);
+    border: 18px solid rgba(185, 0, 0, 0.9);
+    padding: 18px 48px;
+    border-radius: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    mix-blend-mode: multiply;
+    animation: stamp-slam 0.8s cubic-bezier(0.12, 0.7, 0.3, 1.2) forwards,
+               stamp-fade 2.5s forwards;
+}
+@keyframes anim-paper-stamped {
+    0%   { opacity: 1; transform: none; }
+    30%  { transform: none; }
+    36%  { transform: scale(1.012) translateY(-3px); }
+    42%  { transform: scale(0.998) translateY(0); }
+    48%  { transform: scale(1.004) translateY(-1px); }
+    55%  { transform: none; opacity: 1; }
+    100% { opacity: 0; }
+}
+.anim-paper-stamped {
+    animation: anim-paper-stamped 2.5s forwards;
 }
 
 .mobile-only {
