@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const DESTRUCTION_ANIMATIONS = ['crumple', 'shred', 'burn', 'laser', 'stamp'];
     // Animation durations in milliseconds. CSS keyframe durations must match these values.
-    const ANIMATION_DURATIONS = { crumple: 2200, shred: 2200, burn: 2800, laser: 2200, stamp: 2500 };
+    const ANIMATION_DURATIONS = { crumple: 2200, shred: 2200, burn: 2800, laser: 2800, stamp: 2500 };
     // How long the laser beam scans before the paper starts disintegrating
     const LASER_SCAN_DURATION = 1500;
 
@@ -260,12 +260,24 @@ document.addEventListener('DOMContentLoaded', () => {
             uniform float u_t;
             ${_GLSL_NOISE}
             void main(){
-                /* Noise-based fold shadows that deepen as the paper crumples */
-                float n = _vnoise(v_uv*7.0 + u_t*3.0)*0.5
-                        + _vnoise(v_uv*15.0 - u_t*2.0)*0.25;
-                float shade = clamp(1.0 - n * u_t * 1.6, 0.05, 1.0);
-                float a     = 1.0 - smoothstep(0.72, 1.0, u_t);
-                gl_FragColor = vec4(vec3(shade), a);
+                /* Ruled-line notebook paper texture that clearly shows the deformation */
+                float lineY  = fract(v_uv.y * 18.0);
+                float lineAmt = smoothstep(0.90, 0.95, lineY) * max(0.0, 1.0 - u_t * 2.2);
+                /* Red margin line near the left edge */
+                float margin = (1.0 - smoothstep(0.0, 0.006, abs(v_uv.x - 0.14))) * max(0.0, 1.0 - u_t * 2.2);
+
+                /* Fold shadows that deepen as the paper crumples */
+                float n = _vnoise(v_uv*7.0 + u_t*3.0)*0.55
+                        + _vnoise(v_uv*16.0 - u_t*2.5)*0.28;
+                float shade = clamp(1.0 - n * u_t * 1.9, 0.05, 1.0);
+
+                /* Paper: white base, blue ruled lines, red margin */
+                vec3 paper = vec3(shade);
+                paper = mix(paper, vec3(shade*0.80, shade*0.88, shade*1.0), lineAmt * 0.55);
+                paper = mix(paper, vec3(min(shade+0.2,1.0)*0.85, shade*0.45, shade*0.45), margin * 0.5);
+
+                float a = 1.0 - smoothstep(0.72, 1.0, u_t);
+                gl_FragColor = vec4(paper, a);
             }`;
 
         const prog = _glProg(gl, VERT, FRAG);
@@ -399,10 +411,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---- WebGL Laser ----
-    // Each fragment knows exactly when the laser beam passed over it
-    // (based on its UV.y position and the scan speed). After being cut it
-    // glows orange then dissolves away at a per-fragment random rate,
-    // giving a stochastic vaporisation look rather than a uniform fade.
+    // The beam sweeps top→bottom. Where it passes, the paper chars:
+    // white-hot glow → orange → dark-brown → black. Small fire licks rise
+    // from the cut edge while the scan is in progress. After the scan,
+    // charred fragments dissolve away with per-fragment random stagger.
     function animateLaserGL(paper, done) {
         const canvas = _glCanvas(paper);
         const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false });
@@ -419,41 +431,85 @@ document.addEventListener('DOMContentLoaded', () => {
         const FRAG = `
             precision mediump float;
             varying vec2  v_uv;
-            uniform float u_elapsed;  /* seconds since animation start */
-            uniform float u_scanDur;  /* scan phase duration in seconds */
+            uniform float u_elapsed;
+            uniform float u_scanDur;
             ${_GLSL_NOISE}
             void main(){
-                /* v_uv.y = 1 at the top of the paper, 0 at the bottom.
-                   The beam starts at the top (y=1) and sweeps downward.
-                   cutTime: when (in seconds) the beam reaches this fragment's row. */
-                float cutTime   = (1.0 - v_uv.y) * u_scanDur;
-                float tsc       = u_elapsed - cutTime; /* seconds since this row was cut */
+                /* beamY moves from 1 (top) to 0 (bottom) during the scan.
+                   cutTime = when the beam reaches this fragment's row.
+                   tsc     = seconds elapsed since this row was cut. */
+                float beamY   = 1.0 - clamp(u_elapsed / u_scanDur, 0.0, 1.0);
+                float cutTime = (1.0 - v_uv.y) * u_scanDur;
+                float tsc     = u_elapsed - cutTime;
+                bool  scanning = u_elapsed < u_scanDur;
 
-                /* Beam glow — drawn on top of everything, only while scanning */
-                float beamY  = 1.0 - clamp(u_elapsed / u_scanDur, 0.0, 1.0);
-                float dBeam  = abs(v_uv.y - beamY);
-                if (u_elapsed < u_scanDur && dBeam < 0.009) {
-                    float d    = dBeam / 0.009;
-                    vec3  beam = mix(vec3(1.0,1.0,0.9), vec3(1.0,0.05,0.0), d*d);
-                    gl_FragColor = vec4(beam, 1.0);
+                /* ==== BEAM LINE ==== */
+                float dy = v_uv.y - beamY;
+                if (scanning && abs(dy) < 0.007) {
+                    float d    = abs(dy) / 0.007;
+                    vec3  bCol = mix(vec3(1.0, 1.0, 0.95), vec3(1.0, 0.08, 0.0), d * d);
+                    gl_FragColor = vec4(bCol, 1.0);
                     return;
                 }
 
                 if (tsc < 0.0) {
-                    /* Beam hasn't reached here yet — intact white paper */
+                    /* ==== INTACT PAPER ==== */
+                    /* Tiny fire lick on intact side just below beam */
+                    float distToBeam = beamY - v_uv.y;
+                    if (scanning && distToBeam < 0.07) {
+                        float f   = distToBeam / 0.07;
+                        float flk = 0.5 + 0.5 * _vnoise(vec2(v_uv.x*5.0 + u_elapsed*2.0, u_elapsed*20.0));
+                        if (flk > 0.52 + f * 0.55) {
+                            vec3 fCol = mix(vec3(1.0, 0.5, 0.0), vec3(1.0, 0.88, 0.15), f * 1.6);
+                            gl_FragColor = vec4(fCol, (1.0 - f) * flk * 0.65);
+                            return;
+                        }
+                    }
                     gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+                    return;
+                }
+
+                /* ==== CUT ZONE: char progression ==== */
+                /* 0 = just cut (white-hot), 1 = fully charred (black) */
+                float cp = clamp(tsc / 0.55, 0.0, 1.0);
+
+                vec3 charCol;
+                if (cp < 0.25) {
+                    /* White-hot → orange glow */
+                    charCol = mix(vec3(1.0, 0.95, 0.75), vec3(1.0, 0.42, 0.04), cp / 0.25);
+                } else if (cp < 0.65) {
+                    /* Orange → dark red/brown */
+                    charCol = mix(vec3(1.0, 0.42, 0.04), vec3(0.20, 0.04, 0.01), (cp - 0.25) / 0.40);
                 } else {
-                    /* Each fragment dissolves after a random delay (0.06 – 0.44 s).
-                       While dissolving it glows orange, then vanishes. */
-                    float threshold = 0.06 + _rand(v_uv) * 0.38;
-                    if (tsc < threshold) {
-                        float glow   = 1.0 - tsc / threshold;
-                        glow         = glow * glow;
-                        gl_FragColor = vec4(1.0, glow*0.35, 0.0, 0.12 + glow*0.88);
-                    } else {
-                        discard;
+                    /* Dark brown → black char */
+                    charCol = mix(vec3(0.20, 0.04, 0.01), vec3(0.04, 0.01, 0.0), (cp - 0.65) / 0.35);
+                }
+
+                /* Scattered sparks near the fresh cut edge */
+                float spk = _rand(v_uv * 53.0 + vec2(u_elapsed * 11.0, u_elapsed * 7.5));
+                charCol += vec3(1.0, 0.68, 0.12) * step(0.95, spk) * clamp(1.0 - cp * 3.5, 0.0, 1.0);
+
+                /* Fire lick rising from the char zone just above the beam (cut side) */
+                if (scanning && dy > 0.0 && dy < 0.055) {
+                    float f   = dy / 0.055;
+                    float flk = 0.58 + 0.42 * _vnoise(vec2(v_uv.x * 6.0, u_elapsed * 26.0));
+                    vec3  fC  = mix(vec3(1.0, 0.48, 0.0), vec3(1.0, 0.88, 0.15), f);
+                    charCol   = mix(charCol, fC, (1.0 - f) * flk * 0.85);
+                }
+
+                /* ==== DISSOLUTION after scan ==== */
+                if (u_elapsed > u_scanDur) {
+                    float dissolveDelay = 0.05 + _rand(v_uv * 31.0 + vec2(1.7, 2.3)) * 0.85;
+                    float dT = (u_elapsed - u_scanDur) - dissolveDelay;
+                    if (dT > 0.0) {
+                        float a = 1.0 - clamp(dT / 0.22, 0.0, 1.0);
+                        if (a <= 0.0) discard;
+                        gl_FragColor = vec4(charCol, a);
+                        return;
                     }
                 }
+
+                gl_FragColor = vec4(charCol, 1.0);
             }`;
 
         const prog = _glProg(gl, VERT, FRAG);
@@ -596,6 +652,10 @@ document.addEventListener('DOMContentLoaded', () => {
             justifyContent: 'center',
         });
         document.body.appendChild(overlay);
+        /* Random rotation between −30° and +20° so each stamp lands at a
+           different angle, like a real rubber stamp hit off-straight. */
+        const rot = Math.round((Math.random() - 0.5) * 50 - 5);
+        overlay.querySelector('.stamp-mark').style.setProperty('--stamp-rot', rot + 'deg');
         paper.classList.add('anim-paper-stamped');
         setTimeout(() => {
             paper.classList.remove('anim-paper-stamped');

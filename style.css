@@ -1,14 +1,22 @@
+html {
+    height: 100%;
+}
+
 body {
     margin: 0;
     font-family: sans-serif;
     background-color: #f0f0f0;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
 }
 
+/* Use position:fixed so the layout is always pinned to the visual
+   viewport — this prevents iOS Safari from scrolling the controls
+   bar out of view when the address bar or keyboard shifts height. */
 .app-container {
     display: flex;
-    height: 100%;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
 }
 
 .sidebar {
@@ -157,12 +165,23 @@ button:hover {
 /* --- Crumple & throw --- */
 @keyframes anim-crumple {
     0%   { transform: none; opacity: 1; filter: none; }
-    12%  { transform: scale(0.94) rotate(-10deg) skewX(-10deg) skewY(5deg); filter: brightness(0.85); }
-    28%  { transform: scale(0.75) rotate(22deg) skewX(14deg) skewY(-9deg); filter: brightness(0.68) contrast(1.35); }
-    48%  { transform: scale(0.44) rotate(-35deg) translate(50px, -25px) skewX(-8deg); filter: brightness(0.48) contrast(1.65); }
-    66%  { transform: scale(0.2) rotate(360deg) translate(170px, -250px); filter: brightness(0.32); opacity: 0.7; }
-    82%  { transform: scale(0.07) rotate(580deg) translate(340px, -470px); opacity: 0.35; }
-    100% { transform: scale(0.02) rotate(820deg) translate(500px, -680px); opacity: 0; }
+    /* Paper gathers and folds — asymmetric compression, no rotation yet */
+    9%   { transform: scaleY(0.92) scaleX(1.03) skewX(-5deg);
+           filter: contrast(1.10); }
+    20%  { transform: scaleY(0.74) scaleX(0.89) skewX(-13deg) skewY(6deg);
+           filter: brightness(0.80) contrast(1.36); }
+    32%  { transform: scaleY(0.52) scaleX(0.71) skewX(11deg) skewY(-7deg) translateX(-18px);
+           filter: brightness(0.62) contrast(1.58); }
+    /* Paper balled up — rotation only starts now */
+    44%  { transform: scale(0.36) skewX(-9deg) skewY(12deg) rotate(7deg);
+           filter: brightness(0.48) contrast(1.74); }
+    56%  { transform: scale(0.22) rotate(18deg);
+           filter: brightness(0.36) contrast(1.82); }
+    /* Toss off screen — mild rotation, mostly translation */
+    70%  { transform: scale(0.12) rotate(30deg) translate(150px, -190px);
+           opacity: 0.72; filter: brightness(0.26); }
+    85%  { transform: scale(0.05) rotate(42deg) translate(310px, -400px); opacity: 0.28; }
+    100% { transform: scale(0.01) rotate(50deg) translate(420px, -550px); opacity: 0; }
 }
 .anim-crumple {
     animation: anim-crumple 2.2s cubic-bezier(0.25, 0, 0.6, 0.4) forwards;
@@ -256,11 +275,11 @@ button:hover {
 
 /* --- Rubber stamp --- */
 @keyframes stamp-slam {
-    0%   { transform: scale(4.5) rotate(-18deg); opacity: 0; }
-    50%  { transform: scale(0.90) rotate(-18deg); opacity: 1; }
-    66%  { transform: scale(1.08) rotate(-18deg); }
-    80%  { transform: scale(0.96) rotate(-18deg); }
-    100% { transform: scale(1) rotate(-18deg); opacity: 1; }
+    0%   { transform: scale(4.5) rotate(var(--stamp-rot)); opacity: 0; }
+    50%  { transform: scale(0.90) rotate(var(--stamp-rot)); opacity: 1; }
+    66%  { transform: scale(1.08) rotate(var(--stamp-rot)); }
+    80%  { transform: scale(0.96) rotate(var(--stamp-rot)); }
+    100% { transform: scale(1) rotate(var(--stamp-rot)); opacity: 1; }
 }
 @keyframes stamp-fade {
     0%   { opacity: 1; }
