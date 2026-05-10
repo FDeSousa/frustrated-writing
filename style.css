@@ -113,6 +113,24 @@ body {
 
 .main-controls {
     display: flex;
+    align-items: center;
+}
+
+#effect-select {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: #333;
+    cursor: pointer;
+    margin-left: 15px;
+    padding: 4px 6px;
+    outline: none;
+}
+
+#effect-select:hover, #effect-select:focus {
+    border-color: #007bff;
+    color: #007bff;
 }
 
 button {

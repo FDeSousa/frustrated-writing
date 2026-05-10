@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pinNoteBtn = document.getElementById('pin-note');
     const letGoBtn = document.getElementById('let-go');
     const newNoteBtn = document.getElementById('new-note-btn');
+    const effectSelect = document.getElementById('effect-select');
     const notesList = document.getElementById('notes-list');
     const menuBtn = document.getElementById('menu-btn');
     const sidebar = document.querySelector('.sidebar');
@@ -133,7 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (paper.dataset.animating) return false;
         paper.dataset.animating = 'true';
 
-        const type = DESTRUCTION_ANIMATIONS[Math.floor(Math.random() * DESTRUCTION_ANIMATIONS.length)];
+        const selected = effectSelect.value;
+        const type = selected === 'random'
+            ? DESTRUCTION_ANIMATIONS[Math.floor(Math.random() * DESTRUCTION_ANIMATIONS.length)]
+            : selected;
 
         const done = () => {
             delete paper.dataset.animating;
